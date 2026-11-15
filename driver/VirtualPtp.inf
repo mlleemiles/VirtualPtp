@@ -1,0 +1,79 @@
+;
+; VirtualPtp.inf - Virtual Windows Precision Touchpad (UMDF2 HID minidriver)
+;
+; Root-enumerated; installed by install.ps1 (vptp-setup.exe install VirtualPtp.inf).
+; Uses the inbox MsHidUmdf.inf / WUDFRD.inf sections like Microsoft's vhidmini2 sample,
+; which requires Windows 11 (build 22000+).
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = HIDClass
+ClassGuid   = {745a17a0-74d3-11d0-b6fe-00a0c90f57da}
+Provider    = %ProviderString%
+CatalogFile = VirtualPtp.cat
+DriverVer   = 11/15/2026,1.0.0.0
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskDescription%,,,
+
+[SourceDisksFiles]
+VirtualPtp.dll = 1
+
+; ================= Device section =====================
+
+[Manufacturer]
+%ManufacturerString% = VirtualPtp, NT$ARCH$.10.0...22000
+
+[VirtualPtp.NT$ARCH$.10.0...22000]
+%DeviceDesc% = VirtualPtp, Root\VirtualPtp
+
+[VirtualPtp.NT]
+CopyFiles = UMDriverCopy
+Include   = MsHidUmdf.inf
+Needs     = MsHidUmdf.NT
+Include   = WUDFRD.inf
+Needs     = WUDFRD_LowerFilter.NT
+
+[VirtualPtp.NT.hw]
+Include   = MsHidUmdf.inf
+Needs     = MsHidUmdf.NT.hw
+Include   = WUDFRD.inf
+Needs     = WUDFRD_LowerFilter.NT.hw
+
+[VirtualPtp.NT.Services]
+Include   = MsHidUmdf.inf
+Needs     = MsHidUmdf.NT.Services
+Include   = WUDFRD.inf
+Needs     = WUDFRD_LowerFilter.NT.Services
+
+[VirtualPtp.NT.Filters]
+Include   = WUDFRD.inf
+Needs     = WUDFRD_LowerFilter.NT.Filters
+
+[VirtualPtp.NT.Wdf]
+UmdfService                = "VirtualPtp", VirtualPtp_Install
+UmdfServiceOrder           = VirtualPtp
+UmdfKernelModeClientPolicy = AllowKernelModeClients
+UmdfFileObjectPolicy       = AllowNullAndUnknownFileObjects
+UmdfMethodNeitherAction    = Copy
+UmdfFsContextUsePolicy     = CanUseFsContext2
+
+[VirtualPtp_Install]
+UmdfLibraryVersion = $UMDFVERSION$
+ServiceBinary      = "%13%\VirtualPtp.dll"
+
+; ================= copy files =====================
+
+[UMDriverCopy]
+VirtualPtp.dll
+
+[Strings]
+ProviderString     = "VirtualPtp"
+ManufacturerString = "VirtualPtp"
+DiskDescription    = "VirtualPtp Installation Disk"
+DeviceDesc         = "Virtual Precision Touchpad"

@@ -1,0 +1,13 @@
+<Project>
+  <!-- Pull the WDK/SDK from NuGet (restored into .\packages) so no locally installed WDK is needed. -->
+  <PropertyGroup>
+    <VptpPkg>$(MSBuildThisFileDirectory)packages\</VptpPkg>
+    <VptpKitVer>10.0.28000.2526</VptpKitVer>
+  </PropertyGroup>
+  <Import Project="$(VptpPkg)Microsoft.Windows.WDK.x64.$(VptpKitVer)\build\native\Microsoft.Windows.WDK.x64.props"
+          Condition="Exists('$(VptpPkg)Microsoft.Windows.WDK.x64.$(VptpKitVer)\build\native\Microsoft.Windows.WDK.x64.props') and '$(Platform)' == 'x64'" />
+  <Import Project="$(VptpPkg)Microsoft.Windows.SDK.CPP.x64.$(VptpKitVer)\build\native\Microsoft.Windows.SDK.cpp.x64.props"
+          Condition="Exists('$(VptpPkg)Microsoft.Windows.SDK.CPP.x64.$(VptpKitVer)\build\native\Microsoft.Windows.SDK.cpp.x64.props') and '$(Platform)' == 'x64'" />
+  <Import Project="$(VptpPkg)Microsoft.Windows.SDK.CPP.$(VptpKitVer)\build\native\Microsoft.Windows.SDK.cpp.props"
+          Condition="Exists('$(VptpPkg)Microsoft.Windows.SDK.CPP.$(VptpKitVer)\build\native\Microsoft.Windows.SDK.cpp.props')" />
+</Project>
