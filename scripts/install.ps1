@@ -98,7 +98,9 @@ if ($AutoStartElevated) {
     $user = (Get-CimInstance Win32_ComputerSystem).UserName
     if (-not $user) { $user = "$env:USERDOMAIN\$env:USERNAME" }
 
-    $action    = New-ScheduledTaskAction -Execute $exe -WorkingDirectory $installDir
+    # The path contains a space ("Program Files"), so the program must be quoted; "Start in"
+    # (WorkingDirectory) must NOT be quoted or Task Scheduler rejects it.
+    $action    = New-ScheduledTaskAction -Execute "`"$exe`"" -WorkingDirectory $installDir
     $trigger   = New-ScheduledTaskTrigger -AtLogOn -User $user
     $trigger.Delay = 'PT5S'   # let Explorer's tray come up first
     $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest
