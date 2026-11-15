@@ -19,10 +19,14 @@ mouse ──► MiddlePtp.exe (tray app) ──► VirtualPtp driver (UMDF2) ─
    powershell -ExecutionPolicy Bypass -File .\install.ps1
    ```
    This creates a local signing certificate (once), signs the driver with it, and installs the **Virtual Precision Touchpad** device.
-3. Start **`MiddlePtp.exe`**. To run it at login, put a shortcut to it in `shell:startup`.
+3. Start the tray app. The recommended way is to re-run the installer with `-AutoStartElevated`:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\install.ps1 -AutoStartElevated
+   ```
+   This copies MiddlePtp to `C:\Program Files\VirtualPtp` and starts it **elevated at every login, without a UAC prompt**, using a Task Scheduler task. That way middle-drag also works over admin windows. You can also just double-click `MiddlePtp.exe`, but then it won't work over admin windows.
 4. Change the touchpad settings in the next section.
 
-To remove everything: `powershell -ExecutionPolicy Bypass -File .\uninstall.ps1 -RemoveCertificate`
+To remove everything, including the autostart task: `powershell -ExecutionPolicy Bypass -File .\uninstall.ps1 -RemoveCertificate`
 
 > **About the certificate:** the private key stays on this PC. Anything able to read it, which needs admin, could sign code your PC trusts. Run `install.ps1 -ForgetSigningKey` to delete the key right after signing. Re-installing then just creates a new one.
 
@@ -79,7 +83,7 @@ msbuild driver\VirtualPtp.vcxproj -p:Configuration=Release -p:Platform=x64
 ## Known limitations
 
 * **Very long continuous drags:** when the virtual fingers reach the edge of the virtual 16 × 10 cm pad, the app lifts and re-places them. That's roughly every 8 cm of vertical finger travel. You may notice a small hitch there. Lower the sensitivity if it happens often.
-* **Elevated windows:** a non-elevated MiddlePtp can't capture input over admin windows. Run it elevated if you need that.
+* **Elevated windows:** a non-elevated MiddlePtp can't capture the middle button over admin windows; install with `-AutoStartElevated` (or run it as admin) to cover them.
 * **Excluded apps:** apps that use middle-drag themselves (Blender, CAD, some games) need to go in `ExcludedApps`.
 
 ## Troubleshooting
