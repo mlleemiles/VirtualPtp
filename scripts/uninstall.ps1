@@ -11,6 +11,17 @@ $CertSubject = 'CN=VirtualPtp Local Driver Signing'
 
 Get-Process MiddlePtp -ErrorAction SilentlyContinue | Stop-Process -Force
 
+# Elevated autostart (install.ps1 -AutoStartElevated)
+if (Get-ScheduledTask -TaskName 'MiddlePtp' -ErrorAction SilentlyContinue) {
+    Unregister-ScheduledTask -TaskName 'MiddlePtp' -Confirm:$false
+    Write-Host 'Removed MiddlePtp logon task'
+}
+$installDir = Join-Path $env:ProgramFiles 'VirtualPtp'
+if (Test-Path $installDir) {
+    Remove-Item $installDir -Recurse -Force
+    Write-Host "Removed $installDir"
+}
+
 $setup = Join-Path $PSScriptRoot 'vptp-setup.exe'
 if (Test-Path $setup) {
     & $setup remove

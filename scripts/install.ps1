@@ -13,8 +13,14 @@
   Usage, from the extracted folder in an elevated PowerShell:
     powershell -ExecutionPolicy Bypass -File .\install.ps1
     powershell -ExecutionPolicy Bypass -File .\install.ps1 -ForgetSigningKey   # see README
+    powershell -ExecutionPolicy Bypass -File .\install.ps1 -AutoStartElevated  # start MiddlePtp elevated at every login
 #>
-param([switch]$ForgetSigningKey)
+param(
+    [switch]$ForgetSigningKey,
+    # Copy MiddlePtp.exe to Program Files and register a logon task that runs it elevated
+    # (no UAC prompt), so middle-drag also works over admin windows.
+    [switch]$AutoStartElevated
+)
 $ErrorActionPreference = 'Stop'
 $CertSubject = 'CN=VirtualPtp Local Driver Signing'
 
@@ -70,4 +76,39 @@ switch ($LASTEXITCODE) {
     1       { Write-Host 'Installed, but Windows wants a reboot to finish.' -ForegroundColor Yellow }
     default { throw "vptp-setup failed with exit code $LASTEXITCODE" }
 }
-Write-Host 'Next: start MiddlePtp.exe and check the touchpad settings listed in README.md.'
+
+# --- optional: elevated autostart -------------------------------------------------------
+if ($AutoStartElevated) {
+    $TaskName   = 'MiddlePtp'
+    $installDir = Join-Path $env:ProgramFiles 'VirtualPtp'
+    $exe        = Join-Path $installDir 'MiddlePtp.exe'
+
+    # An elevated autostart must point into an admin-only folder: if it ran from e.g. Downloads,
+    # any non-admin program could swap the exe and get admin rights at your next login.
+    Get-Process MiddlePtp -ErrorAction SilentlyContinue | Stop-Process -Force
+    Start-Sleep -Milliseconds 300
+    New-Item -ItemType Directory -Force $installDir | Out-Null
+    Copy-Item (Join-Path $root 'MiddlePtp.exe') $exe -Force
+    $oldIni = Join-Path $root 'MiddlePtp.ini'
+    if ((Test-Path $oldIni) -and -not (Test-Path (Join-Path $installDir 'MiddlePtp.ini'))) {
+        Copy-Item $oldIni $installDir   # keep settings from a previous run
+    }
+
+    # The interactive user, not the admin account that might have approved the UAC prompt.
+    $user = (Get-CimInstance Win32_ComputerSystem).UserName
+    if (-not $user) { $user = "$env:USERDOMAIN\$env:USERNAME" }
+
+    $action    = New-ScheduledTaskAction -Execute $exe -WorkingDirectory $installDir
+    $trigger   = New-ScheduledTaskTrigger -AtLogOn -User $user
+    $trigger.Delay = 'PT5S'   # let Explorer's tray come up first
+    $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest
+    $settings  = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+                     -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew -StartWhenAvailable
+    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal `
+        -Settings $settings -Description 'MiddlePtp: middle-drag to touchpad scrolling (elevated)' -Force | Out-Null
+    Start-ScheduledTask -TaskName $TaskName
+    Write-Host "MiddlePtp installed to $installDir and started elevated; it will start automatically at every login for $user." -ForegroundColor Green
+    Write-Host "Settings file: $installDir\MiddlePtp.ini (or use the tray menu)."
+} else {
+    Write-Host 'Next: start MiddlePtp.exe (or re-run with -AutoStartElevated) and check the touchpad settings in README.md.'
+}
